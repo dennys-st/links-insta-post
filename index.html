@@ -22,10 +22,15 @@
           <h2>Seus Links</h2>
           <div style="display: flex; align-items: center; gap: 0.5rem;">
             <span id="link-count" class="badge">0</span>
-            <button id="clear-all-btn" class="delete-btn" style="width: auto; height: auto; padding: 0.25rem 0.75rem; font-size: 0.8rem; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);" title="Remover Todos os Links">
-              <span class="material-symbols-outlined" style="font-size: 1.1rem; margin-right: 0.25rem;">delete_sweep</span> Limpar Todos
+            <button id="undo-btn" class="undo-btn" title="Desfazer última cópia (Voltar no tempo)">
+              <span class="material-symbols-outlined" style="font-size: 1.1rem; margin-right: 0.25rem;">history</span> Voltar no Tempo
             </button>
           </div>
+        </div>
+        <div class="color-legend">
+          <span class="legend-item"><span class="legend-dot dot-amber"></span> Último copiado</span>
+          <span class="legend-item"><span class="legend-dot dot-cyan"></span> Penúltimo copiado</span>
+          <span class="legend-item"><span class="legend-dot dot-green"></span> Copiados anteriores</span>
         </div>
         <div id="links-container" class="links-container">
           <!-- Links will be injected here -->
