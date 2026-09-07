@@ -11,8 +11,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 </head>
 <body>
-  <!-- Snowfall Background Canvas -->
-  <canvas id="snow-canvas"></canvas>
+  <!-- Dynamic Background Canvas (Chuva / Neve) -->
+  <canvas id="bg-canvas"></canvas>
 
   <div class="studio-wrapper">
     <!-- Top Studio Header -->
@@ -31,6 +31,18 @@
       </div>
 
       <div class="header-actions">
+        <!-- Seletor de Tema (Estrelas no Escuro vs Neve Néon) -->
+        <div class="theme-switcher" title="Escolher tema de animação de fundo">
+          <button class="theme-btn active" data-theme="stars" title="Tema Estrelas cintilantes coloridas">
+            <span class="material-symbols-outlined">auto_awesome</span>
+            <span>Estrelas</span>
+          </button>
+          <button class="theme-btn" data-theme="snow" title="Tema Neve Néon">
+            <span class="material-symbols-outlined">ac_unit</span>
+            <span>Neve</span>
+          </button>
+        </div>
+
         <button id="undo-btn" class="btn-undo" title="Desfazer última cópia">
           <span class="material-symbols-outlined">history</span>
           <span id="undo-label">Voltar no Tempo</span>

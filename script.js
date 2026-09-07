@@ -566,21 +566,132 @@ document.addEventListener('DOMContentLoaded', () => {
   // Render inicial
   renderLinks();
 
-  // =========================================
-  // ANIMAÇÃO DE NEVE: BRANCA + PONTOS COLORIDOS NÉON
-  // =========================================
-  const initSnowAnimation = () => {
-    const canvas = document.getElementById('snow-canvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+  // ============================================================
+  // SISTEMA DE TEMAS DE FUNDO: ESTRELAS COLORIDAS & NEVE NÉON
+  // ============================================================
+  const canvas = document.getElementById('bg-canvas') || document.getElementById('rain-canvas') || document.getElementById('snow-canvas');
+  let activeAnimationId = null;
+  let currentTheme = localStorage.getItem('insta-studio-theme') || 'stars';
+  if (currentTheme === 'rain') currentTheme = 'stars'; // Migrar para o novo tema
 
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
-
-    window.addEventListener('resize', () => {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+  // Configurar botões de tema na interface
+  const themeBtns = document.querySelectorAll('.theme-btn');
+  const updateThemeButtons = (theme) => {
+    themeBtns.forEach(btn => {
+      const t = btn.getAttribute('data-theme');
+      if (t === theme || (theme === 'stars' && t === 'rain')) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
     });
+  };
+
+  // --- TEMA 1: CÉU ESTRELADO REALISTA (INSPIRADO NO PRINT: NÍTIDO, DENSO E CINTILANTE) ---
+  const startStarsTheme = (ctx, getWidth, getHeight) => {
+    let width = getWidth();
+    let height = getHeight();
+
+    // Paleta de cores estelares naturais (predominância de branco nítido com toques sutis)
+    const starColors = [
+      { r: 255, g: 255, b: 255 }, // Branco diamante puro
+      { r: 255, g: 255, b: 255 }, // Branco (peso maior)
+      { r: 255, g: 255, b: 255 }, // Branco (peso maior)
+      { r: 224, g: 242, b: 254 }, // Azul gelo sutil
+      { r: 186, g: 230, b: 253 }, // Ciano celeste suave
+      { r: 254, g: 240, b: 138 }, // Ouro estelar pálido
+      { r: 253, g: 230, b: 138 }, // Âmbar quente suave
+      { r: 245, g: 208, b: 254 }, // Lavanda estelar
+      { r: 251, g: 207, b: 232 }, // Rosa pálido
+    ];
+
+    // Densidade rica inspirada no print de exemplo (centenas de pontos estelares)
+    const starCount = Math.min(550, Math.max(350, Math.floor((width * height) / 2200)));
+    const stars = [];
+
+    for (let i = 0; i < starCount; i++) {
+      const color = starColors[Math.floor(Math.random() * starColors.length)];
+      const rand = Math.random();
+      let r, minAlpha, maxAlpha, hasGlow, glowSize;
+
+      if (rand < 0.65) {
+        // Micro poeira estelar (pontos minúsculos e nítidos como no print)
+        r = Math.random() * 0.45 + 0.45; // 0.45px a 0.9px
+        minAlpha = Math.random() * 0.2 + 0.15;
+        maxAlpha = Math.random() * 0.3 + 0.55;
+        hasGlow = false;
+        glowSize = 0;
+      } else if (rand < 0.92) {
+        // Estrelas médias nítidas
+        r = Math.random() * 0.7 + 0.95; // 0.95px a 1.65px
+        minAlpha = Math.random() * 0.25 + 0.3;
+        maxAlpha = Math.random() * 0.25 + 0.75;
+        hasGlow = Math.random() < 0.25;
+        glowSize = Math.random() * 2.0 + 1.2; // Brilho bem discreto e colado na estrela
+      } else {
+        // Estrelas de destaque nítidas (sem borrão)
+        r = Math.random() * 0.8 + 1.7; // 1.7px a 2.5px
+        minAlpha = Math.random() * 0.2 + 0.45;
+        maxAlpha = Math.random() * 0.15 + 0.85;
+        hasGlow = true;
+        glowSize = Math.random() * 3.0 + 2.0; // Brilho pontual nítido
+      }
+
+      stars.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        r: r,
+        color: color,
+        hasGlow: hasGlow,
+        glowSize: glowSize,
+        phase: Math.random() * Math.PI * 2,
+        pulseSpeed: Math.random() * 0.025 + 0.012, // Aumentando e diminuindo o brilho suavemente
+        minAlpha: minAlpha,
+        maxAlpha: maxAlpha
+      });
+    }
+
+    const loop = () => {
+      width = getWidth();
+      height = getHeight();
+      ctx.clearRect(0, 0, width, height);
+
+      for (let i = 0; i < stars.length; i++) {
+        const s = stars[i];
+
+        // Pulsação suave (aumentando e diminuindo o brilho)
+        s.phase += s.pulseSpeed;
+        const sinVal = 0.5 + 0.5 * Math.sin(s.phase);
+        const alpha = s.minAlpha + (s.maxAlpha - s.minAlpha) * sinVal;
+        const currentR = s.r * (0.88 + 0.24 * sinVal);
+        const { r, g, b } = s.color;
+
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, currentR, 0, Math.PI * 2);
+
+        if (s.hasGlow && sinVal > 0.45) {
+          ctx.shadowBlur = s.glowSize * sinVal;
+          ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${alpha * 0.75})`;
+          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.shadowColor = 'transparent';
+        } else {
+          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+          ctx.fill();
+        }
+      }
+
+      activeAnimationId = requestAnimationFrame(loop);
+    };
+
+    activeAnimationId = requestAnimationFrame(loop);
+  };
+
+  // --- TEMA 2: NEVE BRANCA COM PONTOS COLORIDOS NÉON ---
+  const startSnowTheme = (ctx, getWidth, getHeight) => {
+    let width = getWidth();
+    let height = getHeight();
 
     const neonColors = [
       { r: 245, g: 158, b: 11  },
@@ -631,7 +742,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const totalCount = flakes.length;
 
-    const renderSnow = () => {
+    const loop = () => {
+      width = getWidth();
+      height = getHeight();
       ctx.clearRect(0, 0, width, height);
 
       for (let i = 0; i < totalCount; i++) {
@@ -666,11 +779,60 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      requestAnimationFrame(renderSnow);
+      activeAnimationId = requestAnimationFrame(loop);
     };
 
-    requestAnimationFrame(renderSnow);
+    activeAnimationId = requestAnimationFrame(loop);
   };
 
-  initSnowAnimation();
+  // Gerenciador central de temas
+  const applyTheme = (themeName) => {
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    if (activeAnimationId) {
+      cancelAnimationFrame(activeAnimationId);
+      activeAnimationId = null;
+    }
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    currentTheme = themeName;
+    localStorage.setItem('insta-studio-theme', themeName);
+    updateThemeButtons(themeName);
+
+    const getWidth = () => canvas.width;
+    const getHeight = () => canvas.height;
+
+    if (themeName === 'stars' || themeName === 'rain') {
+      startStarsTheme(ctx, getWidth, getHeight);
+    } else {
+      startSnowTheme(ctx, getWidth, getHeight);
+    }
+  };
+
+  // Redimensionamento de tela para o canvas
+  window.addEventListener('resize', () => {
+    if (!canvas) return;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  });
+
+  // Eventos de clique nos botões de tema
+  themeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const selected = btn.getAttribute('data-theme');
+      const targetTheme = (selected === 'rain' || selected === 'stars') ? 'stars' : 'snow';
+      if (targetTheme !== currentTheme) {
+        applyTheme(targetTheme);
+        const name = targetTheme === 'stars' ? 'Estrelas Brilhantes' : 'Neve Néon';
+        showToast(`Tema alterado para ${name}!`);
+      }
+    });
+  });
+
+  // Iniciar tema salvo ou padrão (Estrelas)
+  applyTheme(currentTheme);
 });

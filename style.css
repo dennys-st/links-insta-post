@@ -58,7 +58,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Snowfall Canvas Background */
+/* Dynamic Background Canvas (Chuva / Neve) */
+#bg-canvas,
+#rain-canvas,
 #snow-canvas {
   position: fixed;
   top: 0;
@@ -146,6 +148,64 @@ body {
   font-size: 0.8rem;
   color: var(--text-muted);
   margin-top: 1px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Theme Switcher Pill */
+.theme-switcher {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 3px;
+  backdrop-filter: blur(12px);
+}
+
+.theme-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.45rem 0.8rem;
+  border-radius: 9px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.2s ease;
+}
+
+.theme-btn span.material-symbols-outlined {
+  font-size: 16px;
+}
+
+.theme-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.theme-btn[data-theme="stars"].active,
+.theme-btn[data-theme="rain"].active {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
+}
+
+.theme-btn[data-theme="snow"].active {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
 }
 
 /* Undo Button */
