@@ -1,8 +1,27 @@
 document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('links-container');
-  const countBadge = document.getElementById('link-count');
   const undoBtn = document.getElementById('undo-btn');
+  const undoLabel = document.getElementById('undo-label');
   const toastEl = document.getElementById('toast');
+
+  // HUD Dashboard Elements
+  const statTotal = document.getElementById('stat-total');
+  const statPending = document.getElementById('stat-pending');
+  const statCopied = document.getElementById('stat-copied');
+  const statPercent = document.getElementById('stat-percent');
+  const statProgressSub = document.getElementById('stat-progress-sub');
+  const progressBarFill = document.getElementById('progress-bar-fill');
+
+  // Toolbar Elements
+  const tabAllCount = document.getElementById('tab-all-count');
+  const tabPendingCount = document.getElementById('tab-pending-count');
+  const tabCopiedCount = document.getElementById('tab-copied-count');
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const searchInput = document.getElementById('search-input');
+  const searchClear = document.getElementById('search-clear');
+
+  let activeFilter = 'all'; // 'all' | 'pending' | 'copied'
+  let searchQuery = '';
 
   // Lista mestre com todos os 129 links originais em sequência canônica (#1 a #129)
   const masterFullList = [
@@ -150,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return idx !== -1 ? (idx + 1) : 0;
   };
 
-  // Lista dos 9 IDs específicos solicitados para remoção (não funcionam)
+  // Lista dos 9 IDs específicos solicitados para remoção
   const idsParaRemover = [
     'DXrAjsRDl-c', // #43
     'DYMgFThRdzg', // #51
@@ -176,7 +195,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!seenReels.has(id)) {
       seenReels.set(id, l);
     } else {
-      // Se um duplicado já estava copiado, mantém o status de copiado
       const existing = seenReels.get(id);
       if (l.copied && !existing.copied) {
         seenReels.set(id, l);
@@ -190,17 +208,15 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('insta-links', JSON.stringify(links));
   };
 
-  // Salvar se houve limpeza de duplicados ou links removidos
   if (links.length !== rawLinks.length) {
     saveLinks();
   }
 
-  // 3. Importar links da lista mestre que ainda não existem no localStorage
+  // 3. Importar links da lista mestre que ainda não existem
   let addedNew = false;
   const baseTime = Date.now();
   masterFullList.forEach((url, index) => {
     const reelId = getReelId(url);
-    // Não importar os que foram deletados
     if (idsParaRemover.includes(reelId)) return;
 
     if (!links.some(l => getReelId(l.url) === reelId)) {
@@ -226,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
       toastEl.classList.remove('show');
-    }, 4000);
+    }, 3500);
   };
 
   const formatDate = (dateString) => {
@@ -268,7 +284,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const itemNum = getAbsoluteNumber(link.url);
 
-    // Permite copiar mesmo se já tiver sido copiado antes!
     if (link.copied) {
       showToast(`Link #${itemNum} copiado novamente!`);
       link.copiedAt = new Date().toISOString();
@@ -279,9 +294,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     link.copied = true;
     link.copiedAt = new Date().toISOString();
-    link.moveAt = Date.now() + 20000; // 20 segundos de delay
+    link.moveAt = Date.now() + 20000; // 20s de delay antes de ir pro final
 
-    showToast(`Link #${itemNum} copiado! Moverá para o final em 20s.`);
+    showToast(`Link #${itemNum} copiado com sucesso!`);
 
     saveLinks();
     renderLinks();
@@ -296,9 +311,48 @@ document.addEventListener('DOMContentLoaded', () => {
     container.innerHTML = '';
     const now = Date.now();
 
-    // ORDENAÇÃO PERFEITA:
-    // 1. Links não-copiados ficam NO TOPO em ordem numérica crescente absoluta (#1, #2, #3...)
-    // 2. Links cujo tempo de 20s já passou vão pro FINAL, na ordem em que foram copiados
+    // 1. Estatísticas Globais
+    const totalCount = links.length;
+    const copiedCount = links.filter(l => l.copied).length;
+    const pendingCount = totalCount - copiedCount;
+    const percent = totalCount > 0 ? Math.round((copiedCount / totalCount) * 100) : 0;
+
+    if (statTotal) statTotal.textContent = totalCount;
+    if (statPending) statPending.textContent = pendingCount;
+    if (statCopied) statCopied.textContent = copiedCount;
+    if (statPercent) statPercent.textContent = `${percent}%`;
+    if (statProgressSub) statProgressSub.textContent = `${copiedCount} de ${totalCount} links processados`;
+    if (progressBarFill) progressBarFill.style.width = `${percent}%`;
+
+    if (tabAllCount) tabAllCount.textContent = totalCount;
+    if (tabPendingCount) tabPendingCount.textContent = pendingCount;
+    if (tabCopiedCount) tabCopiedCount.textContent = copiedCount;
+
+    // 2. Identificar histórico de cópia (Último e Penúltimo)
+    const copiedList = links.filter(l => l.copied)
+      .sort((a, b) => {
+        if (a.copiedAt && b.copiedAt) return new Date(b.copiedAt) - new Date(a.copiedAt);
+        if (a.copiedAt && !b.copiedAt) return -1;
+        if (!a.copiedAt && b.copiedAt) return 1;
+        return getAbsoluteNumber(b.url) - getAbsoluteNumber(a.url);
+      });
+
+    const lastCopiedId = copiedList.length > 0 ? copiedList[0].id : null;
+    const secondLastCopiedId = copiedList.length > 1 ? copiedList[1].id : null;
+
+    // Atualizar rótulo do botão "Voltar no Tempo"
+    if (undoLabel) {
+      if (copiedList.length > 0) {
+        const lastNum = getAbsoluteNumber(copiedList[0].url);
+        undoLabel.textContent = `Desfazer #${lastNum}`;
+      } else {
+        undoLabel.textContent = 'Voltar no Tempo';
+      }
+    }
+
+    // 3. Ordenação Canônica
+    // Não-copiados no topo ordenados pelo número absoluto (#1, #2, #3...)
+    // Copiados após 20s no final pela data de cópia
     const sortedLinks = [...links].sort((a, b) => {
       const aMoved = a.copied && (a.moveAt ? now >= a.moveAt : true);
       const bMoved = b.copied && (b.moveAt ? now >= b.moveAt : true);
@@ -306,22 +360,51 @@ document.addEventListener('DOMContentLoaded', () => {
       if (aMoved && !bMoved) return 1;
       if (!aMoved && bMoved) return -1;
       if (a.copied && b.copied) {
-        return new Date(a.copiedAt) - new Date(b.copiedAt);
+        return new Date(a.copiedAt || 0) - new Date(b.copiedAt || 0);
       }
       return getAbsoluteNumber(a.url) - getAbsoluteNumber(b.url);
     });
 
-    if (sortedLinks.length === 0) {
-      container.innerHTML = `
-        <div class="glass-panel empty-state">
-          <span class="material-symbols-outlined" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">inbox</span>
-          <p>Nenhum link adicionado ainda.</p>
-        </div>
-      `;
+    // Próximo da fila (primeiro pendente da lista ordenada)
+    const pendingList = sortedLinks.filter(l => !l.copied);
+    const nextInQueueId = pendingList.length > 0 ? pendingList[0].id : null;
+
+    // 4. Filtrar por Aba Ativa (Todos / Pendentes / Copiados)
+    let displayList = sortedLinks.filter(link => {
+      if (activeFilter === 'pending') return !link.copied;
+      if (activeFilter === 'copied') return link.copied;
+      return true;
+    });
+
+    // 5. Filtrar por Busca
+    if (searchQuery.trim() !== '') {
+      const q = searchQuery.trim().toLowerCase().replace('#', '');
+      displayList = displayList.filter(link => {
+        const numStr = String(getAbsoluteNumber(link.url));
+        const urlStr = link.url.toLowerCase();
+        return numStr === q || numStr.includes(q) || urlStr.includes(q);
+      });
     }
 
-    // Contar total de links ativos
-    countBadge.textContent = links.length;
+    // Estado Vazio
+    if (displayList.length === 0) {
+      const emptyMsg = searchQuery.trim() !== ''
+        ? `Nenhum resultado para "<strong>${searchQuery}</strong>". Tente outro termo ou limpe a busca.`
+        : (activeFilter === 'pending'
+            ? 'Parabéns! Todos os links já foram copiados e baixados.'
+            : (activeFilter === 'copied'
+                ? 'Nenhum link foi copiado ainda. Clique em Copiar para iniciar.'
+                : 'Nenhum link encontrado.'));
+
+      container.innerHTML = `
+        <div class="empty-state">
+          <span class="material-symbols-outlined empty-icon">saved_search</span>
+          <div class="empty-title">Nenhum link encontrado</div>
+          <div class="empty-desc">${emptyMsg}</div>
+        </div>
+      `;
+      return;
+    }
 
     // Agendar movimentação automática de links pendentes (delay de 20s)
     links.forEach(l => {
@@ -334,78 +417,86 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Identificar último e penúltimo copiados pela data mais recente de cópia
-    const copiedList = links.filter(l => l.copied && l.copiedAt)
-      .sort((a, b) => new Date(b.copiedAt) - new Date(a.copiedAt));
-
-    const lastCopiedId = copiedList.length > 0 ? copiedList[0].id : null;
-    const secondLastCopiedId = copiedList.length > 1 ? copiedList[1].id : null;
-
-    sortedLinks.forEach((link) => {
+    // 6. Renderizar Cards
+    displayList.forEach((link) => {
       const displayNumber = getAbsoluteNumber(link.url);
       const isLast = link.id === lastCopiedId;
       const isSecondLast = link.id === secondLastCopiedId;
+      const isNext = link.id === nextInQueueId && !link.copied;
 
       const card = document.createElement('div');
-      let cardClasses = 'glass-panel link-card';
+      let cardClasses = 'link-card';
       if (link.copied) cardClasses += ' copied';
       if (isLast) cardClasses += ' is-last-copied';
       else if (isSecondLast) cardClasses += ' is-second-last-copied';
+      else if (isNext) cardClasses += ' is-next-in-queue';
       card.className = cardClasses;
 
-      let metaText = `Adicionado em ${formatDate(link.createdAt)}`;
-      if (link.copied) {
-        const isPendingMove = link.moveAt && now < link.moveAt;
-        const statusMsg = isPendingMove ? ' (movendo pro final em 20s...)' : '';
-
-        let badgeTag = '';
-        if (isLast) {
-          badgeTag = `<span class="copy-tag tag-amber"><span class="material-symbols-outlined" style="font-size: 13px;">star</span> Último copiado</span>`;
-        } else if (isSecondLast) {
-          badgeTag = `<span class="copy-tag tag-cyan"><span class="material-symbols-outlined" style="font-size: 13px;">history_toggle_off</span> Penúltimo copiado</span>`;
-        }
-
-        metaText = `<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-          ${badgeTag}
-          <span class="copied-date-text">
-            <span class="material-symbols-outlined" style="font-size: 14px;">check_circle</span>
-            Copiado dia ${formatDate(link.copiedAt)}${statusMsg}
-          </span>
-        </div>`;
+      // Badges
+      let pillHtml = '';
+      if (isLast) {
+        pillHtml = `<span class="status-pill pill-amber"><span class="material-symbols-outlined" style="font-size: 13px;">star</span> Último copiado</span>`;
+      } else if (isSecondLast) {
+        pillHtml = `<span class="status-pill pill-cyan"><span class="material-symbols-outlined" style="font-size: 13px;">history_toggle_off</span> Penúltimo copiado</span>`;
+      } else if (isNext) {
+        pillHtml = `<span class="status-pill pill-next"><span class="material-symbols-outlined" style="font-size: 13px;">play_arrow</span> Próximo da fila</span>`;
       }
 
-      let numberColor = 'rgba(255,255,255,0.2)';
-      if (isLast) numberColor = '#fbbf24';
-      else if (isSecondLast) numberColor = '#38bdf8';
-      else if (link.copied) numberColor = 'var(--success-color)';
+      // Metadata
+      let metaStatusText = '';
+      if (link.copied) {
+        const isPendingMove = link.moveAt && now < link.moveAt;
+        const statusMsg = isPendingMove ? ' (movendo em 20s...)' : '';
+        const dateText = link.copiedAt ? `Copiado em ${formatDate(link.copiedAt)}` : 'Copiado anteriormente';
+        metaStatusText = `<span class="date-status"><span class="material-symbols-outlined">check_circle</span> ${dateText}${statusMsg}</span>`;
+      } else {
+        metaStatusText = `<span class="date-status"><span class="material-symbols-outlined">schedule</span> Adicionado em ${formatDate(link.createdAt)}</span>`;
+      }
 
-      const buttonHtml = link.copied
-        ? `<button class="copy-btn recopy-btn" data-id="${link.id}" title="Copiar link novamente">
-             <span class="material-symbols-outlined" style="font-size: 18px;">content_copy</span>
-             <span>Copiar de novo</span>
-           </button>`
-        : `<button class="copy-btn" data-id="${link.id}" title="Copiar Link">
-             <span class="material-symbols-outlined">content_copy</span>
-           </button>`;
+      // Botões de Ação
+      const actionButtons = link.copied
+        ? `
+          <button class="btn-recopy" data-id="${link.id}" title="Copiar link novamente">
+            <span class="material-symbols-outlined">content_copy</span>
+            <span>Copiar de novo</span>
+          </button>
+          <a href="${link.url}" target="_blank" class="btn-action-icon" title="Abrir Reel no Instagram">
+            <span class="material-symbols-outlined">open_in_new</span>
+          </a>
+        `
+        : `
+          <button class="btn-copy-primary" data-id="${link.id}" title="Copiar link para download">
+            <span class="material-symbols-outlined">content_copy</span>
+            <span>Copiar</span>
+          </button>
+          <a href="${link.url}" target="_blank" class="btn-action-icon" title="Abrir Reel no Instagram">
+            <span class="material-symbols-outlined">open_in_new</span>
+          </a>
+        `;
 
       card.innerHTML = `
-        <div class="card-number" style="color: ${numberColor};">
-          ${displayNumber}
+        <div class="card-num-box">
+          #${displayNumber}
         </div>
-        <div class="link-info">
-          <a href="${link.url}" target="_blank" class="link-url" title="${link.url}">${link.url}</a>
-          <div class="link-meta">${metaText}</div>
+        <div class="card-content">
+          <div class="link-title-line">
+            <a href="${link.url}" target="_blank" class="link-url" title="${link.url}">${link.url}</a>
+          </div>
+          <div class="card-meta-line">
+            ${pillHtml}
+            ${metaStatusText}
+          </div>
         </div>
         <div class="card-actions">
-          ${buttonHtml}
+          ${actionButtons}
         </div>
       `;
 
       container.appendChild(card);
     });
 
-    // Eventos de cópia
-    document.querySelectorAll('.copy-btn').forEach(btn => {
+    // Eventos de clique para copiar
+    container.querySelectorAll('.btn-copy-primary, .btn-recopy').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.getAttribute('data-id');
         copyLink(id);
@@ -413,15 +504,51 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
+  // Eventos das Abas de Filtro
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.getAttribute('data-filter');
+      renderLinks();
+    });
+  });
+
+  // Eventos do Campo de Busca
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      if (searchClear) {
+        searchClear.style.display = searchQuery ? 'flex' : 'none';
+      }
+      renderLinks();
+    });
+  }
+
+  if (searchClear) {
+    searchClear.addEventListener('click', () => {
+      searchInput.value = '';
+      searchQuery = '';
+      searchClear.style.display = 'none';
+      renderLinks();
+      searchInput.focus();
+    });
+  }
+
   // Botão "Voltar no Tempo" (desfaz a última cópia)
   if (undoBtn) {
     undoBtn.addEventListener('click', () => {
-      const copiedLinks = links.filter(l => l.copied && l.copiedAt);
+      const copiedLinks = links.filter(l => l.copied);
       if (copiedLinks.length === 0) {
         showToast('Nenhum link copiado para voltar.');
         return;
       }
-      copiedLinks.sort((a, b) => new Date(b.copiedAt) - new Date(a.copiedAt));
+      copiedLinks.sort((a, b) => {
+        if (a.copiedAt && b.copiedAt) return new Date(b.copiedAt) - new Date(a.copiedAt);
+        if (a.copiedAt && !b.copiedAt) return -1;
+        if (!a.copiedAt && b.copiedAt) return 1;
+        return getAbsoluteNumber(b.url) - getAbsoluteNumber(a.url);
+      });
       const lastCopied = copiedLinks[0];
 
       lastCopied.copied = false;
@@ -432,10 +559,118 @@ document.addEventListener('DOMContentLoaded', () => {
       renderLinks();
 
       const num = getAbsoluteNumber(lastCopied.url);
-      showToast(`Voltou no tempo! Link #${num} retornou à fila original.`);
+      showToast(`Voltou no tempo! Link #${num} retornou para a fila.`);
     });
   }
 
   // Render inicial
   renderLinks();
+
+  // =========================================
+  // ANIMAÇÃO DE NEVE: BRANCA + PONTOS COLORIDOS NÉON
+  // =========================================
+  const initSnowAnimation = () => {
+    const canvas = document.getElementById('snow-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    let width = (canvas.width = window.innerWidth);
+    let height = (canvas.height = window.innerHeight);
+
+    window.addEventListener('resize', () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    });
+
+    const neonColors = [
+      { r: 245, g: 158, b: 11  },
+      { r: 6,   g: 182, b: 212 },
+      { r: 16,  g: 185, b: 129 },
+      { r: 99,  g: 102, b: 241 },
+      { r: 244, g: 63,  b: 94  },
+      { r: 168, g: 85,  b: 247 },
+      { r: 56,  g: 189, b: 248 },
+    ];
+
+    const whiteCount = 140;
+    const coloredCount = 35;
+    const flakes = [];
+
+    for (let i = 0; i < whiteCount; i++) {
+      flakes.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        radius: Math.random() * 2.2 + 0.6,
+        speedY: Math.random() * 1.3 + 0.6,
+        speedX: (Math.random() - 0.5) * 0.4,
+        opacity: Math.random() * 0.7 + 0.25,
+        swing: Math.random() * Math.PI * 2,
+        swingSpeed: Math.random() * 0.02 + 0.008,
+        colored: false
+      });
+    }
+
+    for (let i = 0; i < coloredCount; i++) {
+      const color = neonColors[Math.floor(Math.random() * neonColors.length)];
+      flakes.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        radius: Math.random() * 1.8 + 1.0,
+        speedY: Math.random() * 1.1 + 0.5,
+        speedX: (Math.random() - 0.5) * 0.5,
+        opacity: Math.random() * 0.65 + 0.35,
+        swing: Math.random() * Math.PI * 2,
+        swingSpeed: Math.random() * 0.018 + 0.006,
+        colored: true,
+        color,
+        glowRadius: Math.random() * 6 + 4,
+        pulsePhase: Math.random() * Math.PI * 2,
+        pulseSpeed: Math.random() * 0.04 + 0.015
+      });
+    }
+
+    const totalCount = flakes.length;
+
+    const renderSnow = () => {
+      ctx.clearRect(0, 0, width, height);
+
+      for (let i = 0; i < totalCount; i++) {
+        const f = flakes[i];
+        f.swing += f.swingSpeed;
+        f.y += f.speedY;
+        f.x += f.speedX + Math.sin(f.swing) * 0.45;
+
+        if (f.y > height + 5) { f.y = -5; f.x = Math.random() * width; }
+        if (f.x > width + 5) f.x = -5;
+        if (f.x < -5) f.x = width + 5;
+
+        if (f.colored) {
+          f.pulsePhase += f.pulseSpeed;
+          const pulse = 0.7 + 0.3 * Math.sin(f.pulsePhase);
+          const alpha = f.opacity * pulse;
+          const { r, g, b } = f.color;
+
+          ctx.shadowBlur = f.glowRadius * pulse;
+          ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${alpha * 0.9})`;
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.shadowColor = 'transparent';
+        } else {
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 255, 255, ${f.opacity})`;
+          ctx.fill();
+        }
+      }
+
+      requestAnimationFrame(renderSnow);
+    };
+
+    requestAnimationFrame(renderSnow);
+  };
+
+  initSnowAnimation();
 });
