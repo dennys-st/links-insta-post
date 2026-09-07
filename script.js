@@ -567,19 +567,20 @@ document.addEventListener('DOMContentLoaded', () => {
   renderLinks();
 
   // ============================================================
-  // SISTEMA DE TEMAS DE FUNDO: ESTRELAS COLORIDAS & NEVE NÉON
+  // SISTEMA DE TEMAS: NEVE (PADRÃO), ESTRELAS & MINIMAL
   // ============================================================
   const canvas = document.getElementById('bg-canvas') || document.getElementById('rain-canvas') || document.getElementById('snow-canvas');
   let activeAnimationId = null;
-  let currentTheme = localStorage.getItem('insta-studio-theme') || 'stars';
-  if (currentTheme === 'rain') currentTheme = 'stars'; // Migrar para o novo tema
+  // Neve como padrão ao acessar o site, a não ser que o usuário tenha salvo outro tema
+  let currentTheme = localStorage.getItem('insta-studio-theme') || 'snow';
+  if (currentTheme === 'rain') currentTheme = 'snow';
 
   // Configurar botões de tema na interface
   const themeBtns = document.querySelectorAll('.theme-btn');
   const updateThemeButtons = (theme) => {
     themeBtns.forEach(btn => {
       const t = btn.getAttribute('data-theme');
-      if (t === theme || (theme === 'stars' && t === 'rain')) {
+      if (t === theme) {
         btn.classList.add('active');
       } else {
         btn.classList.remove('active');
@@ -806,10 +807,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const getWidth = () => canvas.width;
     const getHeight = () => canvas.height;
 
-    if (themeName === 'stars' || themeName === 'rain') {
-      startStarsTheme(ctx, getWidth, getHeight);
-    } else {
+    if (themeName === 'minimal') {
+      // Tema Minimal: 100% escuro sem animação, zero consumo de CPU/GPU
+      // O loop de animação é cancelado e o canvas permanece limpo
+    } else if (themeName === 'snow') {
       startSnowTheme(ctx, getWidth, getHeight);
+    } else {
+      startStarsTheme(ctx, getWidth, getHeight);
     }
   };
 
@@ -818,17 +822,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!canvas) return;
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    if (currentTheme === 'minimal') {
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
   });
 
   // Eventos de clique nos botões de tema
   themeBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       const selected = btn.getAttribute('data-theme');
-      const targetTheme = (selected === 'rain' || selected === 'stars') ? 'stars' : 'snow';
+      let targetTheme = selected;
+      if (selected === 'rain') targetTheme = 'stars';
       if (targetTheme !== currentTheme) {
         applyTheme(targetTheme);
-        const name = targetTheme === 'stars' ? 'Estrelas Brilhantes' : 'Neve Néon';
-        showToast(`Tema alterado para ${name}!`);
+        const nameMap = {
+          stars: 'Estrelas',
+          snow: 'Neve Néon',
+          minimal: 'Minimal (Fundo Preto)'
+        };
+        showToast(`Tema alterado para ${nameMap[targetTheme] || targetTheme}!`);
       }
     });
   });

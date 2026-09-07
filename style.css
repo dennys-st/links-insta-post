@@ -193,19 +193,25 @@ body {
   background: rgba(255, 255, 255, 0.06);
 }
 
-.theme-btn[data-theme="stars"].active,
-.theme-btn[data-theme="rain"].active {
-  background: rgba(245, 158, 11, 0.2);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.5);
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
+.theme-btn[data-theme="snow"].active {
+  background: rgba(59, 130, 246, 0.22);
+  color: #bfdbfe;
+  border: 1.5px solid #3b82f6;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.45);
 }
 
-.theme-btn[data-theme="snow"].active {
-  background: rgba(99, 102, 241, 0.2);
-  color: #a5b4fc;
-  border: 1px solid rgba(99, 102, 241, 0.4);
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
+.theme-btn[data-theme="stars"].active {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1.5px solid rgba(245, 158, 11, 0.8);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+}
+
+.theme-btn[data-theme="minimal"].active {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.25);
 }
 
 /* Undo Button */
