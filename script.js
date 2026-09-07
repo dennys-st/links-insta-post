@@ -12,11 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const statProgressSub = document.getElementById('stat-progress-sub');
   const progressBarFill = document.getElementById('progress-bar-fill');
 
-  // Toolbar Elements
-  const tabAllCount = document.getElementById('tab-all-count');
-  const tabPendingCount = document.getElementById('tab-pending-count');
-  const tabCopiedCount = document.getElementById('tab-copied-count');
-  const tabBtns = document.querySelectorAll('.tab-btn');
+  // Filter Cards & Search Elements
+  const filterCards = document.querySelectorAll('.filter-card');
   const searchInput = document.getElementById('search-input');
   const searchClear = document.getElementById('search-clear');
 
@@ -323,10 +320,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (statPercent) statPercent.textContent = `${percent}%`;
     if (statProgressSub) statProgressSub.textContent = `${copiedCount} de ${totalCount} links processados`;
     if (progressBarFill) progressBarFill.style.width = `${percent}%`;
-
-    if (tabAllCount) tabAllCount.textContent = totalCount;
-    if (tabPendingCount) tabPendingCount.textContent = pendingCount;
-    if (tabCopiedCount) tabCopiedCount.textContent = copiedCount;
+ 
+    // Sincronizar estado visual ativo dos cards de filtro
+    filterCards.forEach(card => {
+      if (card.getAttribute('data-filter') === activeFilter) {
+        card.classList.add('active');
+      } else {
+        card.classList.remove('active');
+      }
+    });
 
     // 2. Identificar histórico de cópia (Último e Penúltimo)
     const copiedList = links.filter(l => l.copied)
@@ -504,12 +506,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
-  // Eventos das Abas de Filtro
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      tabBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      activeFilter = btn.getAttribute('data-filter');
+  // Eventos de Clique nos Cards de Filtro do HUD
+  filterCards.forEach(card => {
+    card.addEventListener('click', () => {
+      filterCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      activeFilter = card.getAttribute('data-filter');
       renderLinks();
     });
   });

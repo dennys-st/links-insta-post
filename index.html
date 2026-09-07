@@ -54,18 +54,18 @@
       </div>
     </header>
 
-    <!-- HUD Stats Dashboard -->
+    <!-- HUD Stats Dashboard & Interactive Filters -->
     <section class="hud-dashboard">
-      <div class="stat-card">
+      <div class="stat-card filter-card active" data-filter="all" role="button" tabindex="0" title="Clique para filtrar: Ver Todos">
         <div class="stat-header">
           <span class="stat-name">Total de Links</span>
           <span class="material-symbols-outlined stat-icon">format_list_numbered</span>
         </div>
         <div class="stat-value" id="stat-total">0</div>
-        <div class="stat-sub">Canônicos #1 a #129</div>
+        <div class="stat-sub">Todos os canônicos #1 a #129</div>
       </div>
 
-      <div class="stat-card highlight-pending">
+      <div class="stat-card filter-card highlight-pending" data-filter="pending" role="button" tabindex="0" title="Clique para filtrar: Ver Pendentes">
         <div class="stat-header">
           <span class="stat-name">Pendentes</span>
           <span class="material-symbols-outlined stat-icon">hourglass_top</span>
@@ -74,7 +74,7 @@
         <div class="stat-sub">Aguardando download</div>
       </div>
 
-      <div class="stat-card highlight-copied">
+      <div class="stat-card filter-card highlight-copied" data-filter="copied" role="button" tabindex="0" title="Clique para filtrar: Ver Copiados">
         <div class="stat-header">
           <span class="stat-name">Copiados</span>
           <span class="material-symbols-outlined stat-icon">task_alt</span>
@@ -89,7 +89,7 @@
           <span class="material-symbols-outlined stat-icon">analytics</span>
         </div>
         <div class="stat-value" id="stat-percent">0%</div>
-        <div class="stat-sub" id="stat-progress-sub">0 de 0 links</div>
+        <div class="stat-sub" id="stat-progress-sub">0 de 0 links processados</div>
       </div>
     </section>
 
@@ -100,23 +100,8 @@
       </div>
     </div>
 
-    <!-- Filter & Search Studio Toolbar -->
+    <!-- Search Studio Toolbar -->
     <section class="studio-toolbar">
-      <div class="filter-tabs">
-        <button class="tab-btn active" data-filter="all">
-          <span>Todos</span>
-          <span class="tab-count" id="tab-all-count">0</span>
-        </button>
-        <button class="tab-btn" data-filter="pending">
-          <span>Pendentes</span>
-          <span class="tab-count" id="tab-pending-count">0</span>
-        </button>
-        <button class="tab-btn" data-filter="copied">
-          <span>Copiados</span>
-          <span class="tab-count" id="tab-copied-count">0</span>
-        </button>
-      </div>
-
       <div class="search-box">
         <span class="material-symbols-outlined search-icon">search</span>
         <input type="text" id="search-input" placeholder="Buscar por número (ex: 27) ou link..." autocomplete="off">
